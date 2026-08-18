@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Inventaris BMD</title>
+<style>
+:root {
+  --bg: #f5f6f8; --card: #ffffff; --card-2: #eef0f4; --border: #dcdee3;
+  --text: #1a1b1e; --text-dim: #62666f; --accent: #2563eb; --accent-2: #1d4ed8;
+  --danger: #dc2626; --ok: #15803d; --radius: 14px;
+}
+:root[data-theme="dark"] {
+  --bg: #101114; --card: #1a1b20; --card-2: #22232a; --border: #2c2d34;
+  --text: #eef0f4; --text-dim: #a2a5b0; --accent: #5b93ff; --accent-2: #3a72e0;
+  --danger: #ff6b78; --ok: #4fd587;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 17.5px; }
+body { padding-bottom: 92px; transition: background 0.15s, color 0.15s; }
+.topbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px; background: var(--bg); border-bottom: 1px solid var(--border); gap: 10px; }
+.topbar h1 { font-size: 19px; margin: 0; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.badge { background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; border-radius: 999px;
+  padding: 4px 10px; min-width: 24px; text-align: center; }
+.theme-toggle { background: var(--card-2); border: 1px solid var(--border); border-radius: 999px; width: 42px; height: 42px;
+  font-size: 19px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); }
+main { padding: 16px; max-width: 560px; margin: 0 auto; }
+.field { display: block; margin-bottom: 16px; position: relative; }
+.field > span { display: block; font-size: 14.5px; color: var(--text-dim); margin-bottom: 7px; font-weight: 600; }
+.field input, .field select { width: 100%; background: var(--card); border: 1.5px solid var(--border); color: var(--text);
+  border-radius: 11px; padding: 15px; font-size: 17.5px; }
+.field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+.field-hint { font-size: 13.5px; color: var(--accent); margin: -10px 0 16px; min-height: 18px; font-weight: 600; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.photo-input { position: relative; border: 2px dashed var(--border); border-radius: var(--radius); aspect-ratio: 4/3;
+  overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--card); }
+.photo-input input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.photo-placeholder { color: var(--text-dim); font-size: 16px; text-align: center; padding: 0 20px; font-weight: 600; }
+.photo-placeholder .icon { font-size: 34px; display: block; margin-bottom: 8px; }
+#photoPreview { width: 100%; height: 100%; object-fit: cover; }
+.suggestions { position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--card);
+  border: 1.5px solid var(--border); border-radius: 11px; overflow: hidden; z-index: 10; max-height: 240px; overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.suggestion-item { padding: 13px 15px; font-size: 16px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:active { background: var(--accent); color: #fff; }
+.suggestion-item small { display: block; color: var(--text-dim); font-size: 12.5px; margin-top: 3px; }
+.suggestion-item:active small { color: #dce6ff; }
+.segmented { display: flex; border: 1.5px solid var(--border); border-radius: 11px; overflow: hidden; }
+.seg-btn { flex: 1; padding: 14px; background: var(--card); border: none; color: var(--text-dim); font-size: 15.5px;
+  cursor: pointer; font-weight: 600; }
+.seg-btn.active { background: var(--accent); color: #fff; }
+.advanced-toggle { cursor: pointer; }
+.advanced-toggle span { color: var(--text-dim); font-size: 14px; font-weight: 600; }
+.primary { width: 100%; background: var(--accent); border: none; color: #fff; font-weight: 700; font-size: 17.5px;
+  padding: 17px; border-radius: 13px; cursor: pointer; }
+.primary:active { background: var(--accent-2); }
+.primary:disabled { opacity: 0.5; }
+.ghost { background: var(--card); border: 1.5px solid var(--border); color: var(--text); border-radius: 13px;
+  padding: 15px; font-size: 16px; cursor: pointer; font-weight: 600; }
+.status { text-align: center; font-size: 14.5px; margin-top: 12px; min-height: 20px; font-weight: 600; }
+.status.ok { color: var(--ok); }
+.status.error { color: var(--danger); }
+.item-list { display: flex; flex-direction: column; gap: 11px; }
+.item-card { display: flex; gap: 13px; background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 11px; align-items: center; }
+.item-card img { width: 68px; height: 68px; object-fit: cover; border-radius: 10px; flex-shrink: 0; background: var(--card-2); }
+.item-card .meta { flex: 1; min-width: 0; }
+.item-card .meta .name { font-weight: 700; font-size: 16px; }
+.item-card .meta .sub { font-size: 13.5px; color: var(--text-dim); margin-top: 3px; }
+.item-card .actions { display: flex; flex-direction: column; gap: 7px; }
+.item-card .actions button { background: var(--card-2); border: 1.5px solid var(--border); color: var(--text);
+  border-radius: 9px; padding: 8px 12px; font-size: 13px; cursor: pointer; font-weight: 600; }
+.item-card .actions button.del { color: var(--danger); }
+.empty-list { text-align: center; color: var(--text-dim); padding: 44px 0; font-size: 15.5px; }
+.bottomnav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: var(--card);
+  border-top: 1.5px solid var(--border); padding: 7px; gap: 7px; z-index: 10; }
+.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: transparent;
+  border: none; color: var(--text-dim); font-size: 12.5px; padding: 9px 0 5px; border-radius: 11px; cursor: pointer; font-weight: 600; }
+.nav-btn span { font-size: 21px; }
+.nav-btn.active { color: var(--accent); background: var(--card-2); }
+#exportBtn { color: var(--ok); }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: flex-end; z-index: 20; }
+.modal-card { background: var(--card); border-radius: 20px 20px 0 0; padding: 22px; width: 100%; max-height: 85vh; overflow-y: auto; }
+.modal-card h2 { margin: 0 0 16px; font-size: 18.5px; }
+.modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid #ffffff55; border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: -2px; margin-right: 7px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Inventaris BMD</h1>
+    <div class="topbar-right">
+      <button class="theme-toggle" id="themeToggle" title="Ganti tema">🌙</button>
+      <span id="pendingCount" class="badge">0</span>
+    </div>
+  </header>
+
+  <main>
+    <section id="viewAdd" class="view">
+      <form id="itemForm" autocomplete="off">
+        <label class="field">
+          <span>Foto Barang</span>
+          <div class="photo-input" id="photoInput">
+            <img id="photoPreview" hidden />
+            <div id="photoPlaceholder" class="photo-placeholder"><span class="icon">📷</span><span>Ketuk untuk ambil foto</span></div>
+            <input type="file" id="photoFile" accept="image/*" capture="environment" required />
+          </div>
+        </label>
+
+        <label class="field">
+          <span>Nama Barang</span>
+          <input type="text" id="namaBarang" required placeholder="mis. Kursi Putar" />
+          <div id="suggestions" class="suggestions" hidden></div>
+        </label>
+
+        <div class="field-hint" id="routeHint"></div>
+
+        <label class="field">
+          <span>Kategori</span>
+          <div class="segmented" id="kategoriSeg">
+            <button type="button" class="seg-btn active" data-val="dihapus">Rusak / Dihapus</button>
+            <button type="button" class="seg-btn" data-val="hilang">Hilang</button>
+          </div>
+        </label>
+
+        <div class="row2">
+          <label class="field"><span>No. Register</span><input type="text" id="noRegister" placeholder="mis. 12" /></label>
+          <label class="field"><span>Tahun</span><input type="number" id="tahun" placeholder="2013" min="1980" max="2100" /></label>
+        </div>
+        <div class="row2">
+          <label class="field"><span>Merk/Type</span><input type="text" id="merkType" placeholder="opsional" /></label>
+          <label class="field"><span>Harga Perolehan</span><input type="number" id="hargaPerolehan" placeholder="opsional (Rp)" /></label>
+        </div>
+
+        <label class="field">
+          <span>Keadaan Barang</span>
+          <select id="keadaanBarang">
+            <option value="RB" selected>Rusak Berat (RB)</option>
+            <option value="KB">Kurang Baik (KB)</option>
+            <option value="B">Baik (B)</option>
+          </select>
+        </label>
+
+        <label class="field"><span>Keterangan</span><input type="text" id="keterangan" placeholder="opsional, mis. APBD" /></label>
+
+        <label class="field advanced-toggle" id="advToggle"><span>Kode Barang / Sheet tujuan (lanjutan) &#9662;</span></label>
+        <div id="advFields" hidden>
+          <div class="row2">
+            <label class="field"><span>Kode Barang</span><input type="text" id="kodeBarang" placeholder="terisi otomatis" /></label>
+            <label class="field"><span>Sheet tujuan</span><select id="sheetName"></select></label>
+          </div>
+          <label class="field"><span>Kode Lokasi</span><input type="text" id="kodeLokasi" /></label>
+        </div>
+
+        <button type="submit" class="primary" id="submitBtn">Simpan Barang</button>
+        <div id="formStatus" class="status"></div>
+      </form>
+    </section>
+
+    <section id="viewList" class="view" hidden>
+      <div id="itemList" class="item-list"></div>
+      <div id="emptyList" class="empty-list" hidden>Belum ada barang diinput.</div>
+    </section>
+  </main>
+
+  <nav class="bottomnav">
+    <button class="nav-btn active" data-view="viewAdd"><span>&#10133;</span>Tambah</button>
+    <button class="nav-btn" data-view="viewList"><span>&#128203;</span>Daftar</button>
+    <button class="nav-btn" id="exportBtn"><span>&#11015;&#65039;</span>Export Excel</button>
+  </nav>
+
+  <div id="editModal" class="modal" hidden>
+    <div class="modal-card">
+      <h2>Edit Barang</h2>
+      <div id="editFields"></div>
+      <div class="modal-actions">
+        <button id="editCancel" class="ghost">Batal</button>
+        <button id="editSave" class="primary">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ---------- theme ----------
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  $("themeToggle").textContent = theme === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('inv_theme', theme);
+}
+applyTheme(localStorage.getItem('inv_theme') || 'light');
+$("themeToggle").addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+// ---------- API helpers ----------
+// This page is hosted separately from the Apps Script backend (see
+// PANDUAN_SETUP.md), so every call is cross-origin to API_URL — paste your
+// Apps Script Web App /exec URL below once after deploying it.
+const API_URL = 'https://script.google.com/macros/s/AKfycbyJLNB8g2DhJVhvNgzwEWjkgF0ZzkxEHcYvmblVrHS6YaQc5ZgtCHi4EtUIPDyQi8mdqA/exec';
+
+function apiGet(action, params) {
+  const qs = new URLSearchParams(Object.assign({ action: action }, params || {}));
+  return fetch(API_URL + '?' + qs.toString()).then((r) => r.json());
+}
+function apiPost(action, data) {
+  // text/plain avoids a CORS preflight (Apps Script doesn't handle
+  // OPTIONS requests) — the body is still JSON, just parsed manually
+  // server-side via e.postData.contents.
+  return fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({ action: action }, data || {})),
+  }).then((r) => r.json());
+}
+
+// ---------- nav ----------
+const views = { viewAdd: $("viewAdd"), viewList: $("viewList") };
+document.querySelectorAll(".nav-btn[data-view]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav-btn[data-view]").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    Object.entries(views).forEach(([id, el]) => (el.hidden = id !== btn.dataset.view));
+    if (btn.dataset.view === "viewList") loadItems();
+  });
+});
+
+// ---------- photo (client-side compression before upload) ----------
+let photoBase64 = null;
+
+function compressImage(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+$("photoFile").addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  setStatus("Memproses foto...", "");
+  try {
+    photoBase64 = await compressImage(f, 1400, 0.82);
+    $("photoPreview").src = photoBase64;
+    $("photoPreview").hidden = false;
+    $("photoPlaceholder").hidden = true;
+    setStatus("", "");
+  } catch (err) {
+    setStatus("Gagal memproses foto: " + err.message, "error");
+  }
+});
+
+// ---------- kategori segmented ----------
+let kategoriVal = "dihapus";
+document.querySelectorAll("#kategoriSeg .seg-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#kategoriSeg .seg-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    kategoriVal = btn.dataset.val;
+    updateRouteHint();
+  });
+});
+
+// ---------- advanced fields ----------
+$("advToggle").addEventListener("click", () => { $("advFields").hidden = !$("advFields").hidden; });
+
+// ---------- nama barang autocomplete ----------
+let debounceT = null;
+let selectedMatch = null;
+
+$("namaBarang").addEventListener("input", () => {
+  selectedMatch = null;
+  updateRouteHint();
+  const q = $("namaBarang").value.trim();
+  clearTimeout(debounceT);
+  if (q.length < 2) { $("suggestions").hidden = true; return; }
+  debounceT = setTimeout(() => { apiGet('lookup', { q: q }).then(renderSuggestions); }, 200);
+});
+
+function renderSuggestions(results) {
+  const box = $("suggestions");
+  if (!results || !results.length) { box.hidden = true; return; }
+  box.innerHTML = "";
+  results.forEach((r) => {
+    const div = document.createElement("div");
+    div.className = "suggestion-item";
+    div.innerHTML = escapeHtml(r.nama_barang) + "<small>" + escapeHtml(r.kode_barang) + " &middot; sheet " + escapeHtml(r.sheet) + "</small>";
+    div.addEventListener("click", () => {
+      $("namaBarang").value = r.nama_barang;
+      selectedMatch = r;
+      $("kodeBarang").value = r.kode_barang;
+      $("sheetName").value = r.sheet;
+      box.hidden = true;
+      updateRouteHint();
+    });
+    box.appendChild(div);
+  });
+  box.hidden = false;
+}
+
+document.addEventListener("click", (e) => {
+  if (!$("suggestions").contains(e.target) && e.target !== $("namaBarang")) $("suggestions").hidden = true;
+});
+
+function updateRouteHint() {
+  const hint = $("routeHint");
+  if (kategoriVal === "hilang") { hint.textContent = "Akan masuk ke sheet: Worksheet (2) — Barang Hilang"; return; }
+  if (selectedMatch) hint.textContent = "Otomatis masuk ke sheet golongan: " + selectedMatch.sheet;
+  else if ($("namaBarang").value.trim()) hint.textContent = "Barang belum dikenali — pilih sheet tujuan manual di bagian lanjutan ↓";
+  else hint.textContent = "";
+}
+
+// ---------- init: kode lokasi default + sheet select ----------
+apiGet('init').then((d) => {
+  $("kodeLokasi").value = d.kode_lokasi;
+  const sel = $("sheetName");
+  sel.innerHTML = '<option value="">(otomatis)</option>';
+  d.golongan_sheets.forEach((s) => {
+    const opt = document.createElement("option");
+    opt.value = s; opt.textContent = s;
+    sel.appendChild(opt);
+  });
+});
+
+// ---------- submit ----------
+$("itemForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!photoBase64) { setStatus("Foto barang wajib diisi", "error"); return; }
+  const btn = $("submitBtn");
+  btn.disabled = true;
+  setStatus("Menyimpan...", "");
+
+  const payload = {
+    nama_barang: $("namaBarang").value.trim(),
+    kode_barang: $("kodeBarang").value.trim(),
+    kode_lokasi: $("kodeLokasi").value.trim(),
+    sheet_name: $("sheetName").value,
+    no_register: $("noRegister").value.trim(),
+    merk_type: $("merkType").value.trim(),
+    tahun: $("tahun").value,
+    harga_perolehan: $("hargaPerolehan").value,
+    keadaan_barang: $("keadaanBarang").value,
+    kategori: kategoriVal,
+    keterangan: $("keterangan").value.trim(),
+    photoBase64: photoBase64,
+  };
+
+  apiPost('save', payload)
+    .then((res) => {
+      if (res && res.error) throw new Error(res.error);
+      setStatus("Tersimpan ✓", "ok");
+      resetForm();
+      refreshPendingCount();
+    })
+    .catch((err) => setStatus(err.message || "Gagal menyimpan", "error"))
+    .finally(() => { btn.disabled = false; });
+});
+
+function resetForm() {
+  $("itemForm").reset();
+  photoBase64 = null;
+  $("photoPreview").hidden = true;
+  $("photoPlaceholder").hidden = false;
+  selectedMatch = null;
+  document.querySelectorAll("#kategoriSeg .seg-btn").forEach((b, i) => b.classList.toggle("active", i === 0));
+  kategoriVal = "dihapus";
+  $("routeHint").textContent = "";
+  apiGet('init').then((d) => ($("kodeLokasi").value = d.kode_lokasi));
+}
+
+function setStatus(msg, kind) {
+  const el = $("formStatus");
+  el.textContent = msg;
+  el.className = "status" + (kind ? " " + kind : "");
+}
+
+// ---------- list / edit / delete ----------
+function loadItems() {
+  apiGet('list').then((items) => {
+    renderList(items);
+    $("pendingCount").textContent = items.length;
+  });
+}
+
+function refreshPendingCount() {
+  apiGet('list').then((items) => { $("pendingCount").textContent = items.length; });
+}
+
+function renderList(items) {
+  const box = $("itemList");
+  box.innerHTML = "";
+  $("emptyList").hidden = items.length > 0;
+  items.forEach((it) => {
+    const card = document.createElement("div");
+    card.className = "item-card";
+    card.innerHTML =
+      '<img src="' + (it.photo_url || "") + '" onerror="this.style.visibility=\'hidden\'" />' +
+      '<div class="meta">' +
+        '<div class="name">' + escapeHtml(it.nama_barang) + "</div>" +
+        '<div class="sub">' + (it.kategori === "hilang" ? "Hilang" : "Sheet " + escapeHtml(it.sheet_name || "?")) +
+          " &middot; " + (it.tahun || "-") + " &middot; " + (it.keadaan_barang || "-") + "</div>" +
+      "</div>" +
+      '<div class="actions"><button class="edit">Edit</button><button class="del">Hapus</button></div>';
+    card.querySelector(".del").addEventListener("click", () => {
+      if (!confirm('Hapus "' + it.nama_barang + '"?')) return;
+      apiPost('delete', { id: it.id }).then(loadItems);
+    });
+    card.querySelector(".edit").addEventListener("click", () => openEdit(it));
+    box.appendChild(card);
+  });
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s || "";
+  return d.innerHTML;
+}
+
+// ---------- edit modal ----------
+function openEdit(it) {
+  const fields = $("editFields");
+  fields.innerHTML =
+    '<label class="field"><span>Nama Barang</span><input id="e_nama" value="' + escapeHtml(it.nama_barang) + '" /></label>' +
+    '<div class="row2">' +
+      '<label class="field"><span>No. Register</span><input id="e_reg" value="' + escapeHtml(it.no_register || "") + '" /></label>' +
+      '<label class="field"><span>Tahun</span><input id="e_tahun" type="number" value="' + (it.tahun || "") + '" /></label>' +
+    "</div>" +
+    '<div class="row2">' +
+      '<label class="field"><span>Merk/Type</span><input id="e_merk" value="' + escapeHtml(it.merk_type || "") + '" /></label>' +
+      '<label class="field"><span>Harga Perolehan</span><input id="e_harga" type="number" value="' + (it.harga_perolehan || "") + '" /></label>' +
+    "</div>" +
+    '<label class="field"><span>Keadaan</span><select id="e_keadaan">' +
+      '<option value="RB"' + (it.keadaan_barang === "RB" ? " selected" : "") + ">Rusak Berat (RB)</option>" +
+      '<option value="KB"' + (it.keadaan_barang === "KB" ? " selected" : "") + ">Kurang Baik (KB)</option>" +
+      '<option value="B"' + (it.keadaan_barang === "B" ? " selected" : "") + ">Baik (B)</option>" +
+    "</select></label>" +
+    '<label class="field"><span>Keterangan</span><input id="e_ket" value="' + escapeHtml(it.keterangan || "") + '" /></label>' +
+    '<div class="row2">' +
+      '<label class="field"><span>Kode Barang</span><input id="e_kode" value="' + escapeHtml(it.kode_barang || "") + '" /></label>' +
+      '<label class="field"><span>Sheet</span><input id="e_sheet" value="' + escapeHtml(it.sheet_name || "") + '" /></label>' +
+    "</div>";
+  $("editModal").hidden = false;
+  $("editSave").onclick = () => {
+    const payload = {
+      id: it.id,
+      nama_barang: $("e_nama").value.trim(),
+      kode_barang: $("e_kode").value.trim(),
+      kode_lokasi: it.kode_lokasi || "",
+      sheet_name: $("e_sheet").value.trim(),
+      no_register: $("e_reg").value.trim(),
+      merk_type: $("e_merk").value.trim(),
+      tahun: $("e_tahun").value,
+      harga_perolehan: $("e_harga").value,
+      keadaan_barang: $("e_keadaan").value,
+      kategori: it.kategori,
+      keterangan: $("e_ket").value.trim(),
+    };
+    apiPost('update', payload).then(() => { $("editModal").hidden = true; loadItems(); });
+  };
+}
+$("editCancel").addEventListener("click", () => ($("editModal").hidden = true));
+
+// ---------- export ----------
+$("exportBtn").addEventListener("click", () => {
+  const btn = $("exportBtn");
+  const original = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner"></span>Memproses...';
+  btn.disabled = true;
+
+  apiPost('export')
+    .then((res) => {
+      if (res && res.error) throw new Error(res.error);
+      const byteChars = atob(res.base64);
+      const bytes = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = res.filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    })
+    .catch((err) => alert(err.message || "Gagal export"))
+    .finally(() => { btn.innerHTML = original; btn.disabled = false; });
+});
+</script>
+</body>
+</html>
